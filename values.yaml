@@ -15,12 +15,9 @@ secondary:
   persistence:
     accessModes: ["ReadWriteOnce"]
     # storage class for EKS volumes
-    storageClass: gp2
+    storageClass: gp3
 
-global:
-  security:
-    allowInsecureImages: True
 image:
   registry: docker.io
-  tag: latest
-  repository: bitnamilegacy/mysql 
+  repository: bitnami/mysql
+  tag: 8.0.36-debian-12-r3
