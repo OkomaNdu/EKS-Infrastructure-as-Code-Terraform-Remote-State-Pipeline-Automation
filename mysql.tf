@@ -14,14 +14,14 @@ provider "kubernetes" {
 # load_config_file       = "false"
   host                   = data.aws_eks_cluster.cluster.endpoint
   token                  = data.aws_eks_cluster_auth.cluster.token
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
 }
 
 provider "helm" {
   kubernetes = {
-    host                   = data.aws_eks_cluster.cluster.endpoint
-    token                  = data.aws_eks_cluster_auth.cluster.token
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+    host = data.aws_eks_cluster.cluster.endpoint
+    token = data.aws_eks_cluster_auth.cluster.token
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
   }
 }
 
@@ -37,7 +37,7 @@ resource "helm_release" "mysql" {
   ]
 
   # Set chart values individually
-  set {
+  set = {
     name  = "volumePermissions.enabled" 
     value = true
   }
