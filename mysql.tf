@@ -37,8 +37,10 @@ resource "helm_release" "mysql" {
   ]
 
   # Set chart values individually
-  set = {
-    name  = "volumePermissions.enabled" 
-    value = true
+set = [
+  {
+    name  = "volumePermissions.enabled"
+    value = "true" # Note: Helm values are often safer as strings
   }
+]
 }
