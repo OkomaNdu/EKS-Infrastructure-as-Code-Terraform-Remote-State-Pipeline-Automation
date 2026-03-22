@@ -33,66 +33,66 @@
 
 ## Architecture
 
-```mermaid
-flowchart TB
-    subgraph INTERNET["Internet"]
-        USER(["Users / kubectl"])
-    end
-
-    subgraph AWS_CLOUD["AWS Cloud — ca-central-1"]
-
-        S3[("S3 Bucket\nesk-project-bucket\n(Terraform State)")]
-
-        subgraph VPC["VPC — 10.0.0.0/16"]
-
-            subgraph PUBLIC["Public Subnets"]
-                direction LR
-                PUB1["10.0.4.0/24\nAZ-a"]
-                PUB2["10.0.5.0/24\nAZ-b"]
-                PUB3["10.0.6.0/24\nAZ-c"]
-            end
-
-            NAT{{"NAT Gateway"}}
-
-            subgraph PRIVATE["Private Subnets"]
-                direction LR
-                PRIV1["10.0.1.0/24\nAZ-a"]
-                PRIV2["10.0.2.0/24\nAZ-b"]
-                PRIV3["10.0.3.0/24\nAZ-c"]
-            end
-
-            subgraph EKS["EKS Cluster — my-cluster"]
-                CP["Control Plane\n(AWS Managed)"]
-
-                subgraph COMPUTE["Compute"]
-                    direction LR
-                    NG["Managed Node Group\nt3.small × 3\n(EBS CSI Driver)"]
-                    FG["Fargate Profile\nNamespace: my-app"]
-                end
-
-                subgraph WORKLOADS["Workloads"]
-                    MYSQL[("MySQL 9.14\nBitnami Helm Chart")]
-                end
-            end
-        end
-    end
-
-    USER -- "HTTPS :443" --> CP
-    CP --> NG
-    CP --> FG
-    NG --> MYSQL
-    PUBLIC --> NAT --> PRIVATE
-    PRIVATE --> EKS
-
-    style AWS_CLOUD fill:#f7f7f7,stroke:#232F3E,stroke-width:2px,color:#232F3E
-    style VPC fill:#E8F5E9,stroke:#1B5E20,stroke-width:2px,color:#1B5E20
-    style PUBLIC fill:#FFF3E0,stroke:#E65100,stroke-width:1px
-    style PRIVATE fill:#E3F2FD,stroke:#0D47A1,stroke-width:1px
-    style EKS fill:#EDE7F6,stroke:#4A148C,stroke-width:2px
-    style COMPUTE fill:#FCE4EC,stroke:#880E4F,stroke-width:1px
-    style WORKLOADS fill:#FFF8E1,stroke:#F57F17,stroke-width:1px
-    style S3 fill:#FF9900,stroke:#232F3E,color:#fff
-    style INTERNET fill:#fff,stroke:#999
+```
+┌─────────────────────────────────────────────────────────────────────────────────────┐
+│                              AWS Cloud (ca-central-1)                               │
+│                                                                                     │
+│  ┌─ S3 ──────────────────┐                                                         │
+│  │ esk-project-bucket    │     Terraform Remote State                               │
+│  │ myapp/state.tfstate   │                                                          │
+│  └───────────────────────┘                                                          │
+│                                                                                     │
+│  ┌─ VPC (10.0.0.0/16) ────────────────────────────────────────────────────────────┐ │
+│  │                                                                                │ │
+│  │   ┌─ Public Subnets ──────────────────────────────────────────────────────┐    │ │
+│  │   │                                                                       │    │ │
+│  │   │   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐           │    │ │
+│  │   │   │ 10.0.4.0/24  │    │ 10.0.5.0/24  │    │ 10.0.6.0/24  │           │    │ │
+│  │   │   │    AZ-a       │    │    AZ-b       │    │    AZ-c       │           │    │ │
+│  │   │   └──────────────┘    └──────────────┘    └──────────────┘           │    │ │
+│  │   │                                                                       │    │ │
+│  │   │   Role: kubernetes.io/role/elb = 1  (External Load Balancers)        │    │ │
+│  │   └───────────────────────────────────────────────────────────────────────┘    │ │
+│  │                              │                                                 │ │
+│  │                      ┌──────▼──────┐                                           │ │
+│  │                      │ NAT Gateway │                                           │ │
+│  │                      └──────┬──────┘                                           │ │
+│  │                              │                                                 │ │
+│  │   ┌─ Private Subnets ───────▼─────────────────────────────────────────────┐    │ │
+│  │   │                                                                       │    │ │
+│  │   │   ┌──────────────┐    ┌──────────────┐    ┌──────────────┐           │    │ │
+│  │   │   │ 10.0.1.0/24  │    │ 10.0.2.0/24  │    │ 10.0.3.0/24  │           │    │ │
+│  │   │   │    AZ-a       │    │    AZ-b       │    │    AZ-c       │           │    │ │
+│  │   │   └──────────────┘    └──────────────┘    └──────────────┘           │    │ │
+│  │   │                                                                       │    │ │
+│  │   │   Role: kubernetes.io/role/internal-elb = 1  (Internal Load Balancers)│    │ │
+│  │   └───────────────────────────────────────────────────────────────────────┘    │ │
+│  │                              │                                                 │ │
+│  └──────────────────────────────┼─────────────────────────────────────────────────┘ │
+│                                 │                                                   │
+│  ┌─ EKS Cluster (my-cluster) ──▼──────────────────────────────────────────────────┐ │
+│  │                                                                                │ │
+│  │   ┌───────────────────────────────────────────┐                                │ │
+│  │   │         Control Plane (AWS Managed)        │◄──── kubectl / HTTPS :443     │ │
+│  │   └────────────────┬──────────────────────────┘                                │ │
+│  │                    │                                                            │ │
+│  │        ┌───────────┴───────────┐                                               │ │
+│  │        ▼                       ▼                                               │ │
+│  │   ┌─────────────────┐   ┌─────────────────┐    ┌──────────────────────────┐   │ │
+│  │   │  Managed Nodes   │   │ Fargate Profile  │    │     Cluster Addons       │   │ │
+│  │   │  t3.small × 3    │   │ ns: my-app       │    │     aws-ebs-csi-driver   │   │ │
+│  │   │  (1 min, 3 max)  │   │                  │    │                          │   │ │
+│  │   └────────┬─────────┘   └──────────────────┘    └──────────────────────────┘   │ │
+│  │            │                                                                    │ │
+│  │            ▼                                                                    │ │
+│  │   ┌──────────────────────────────┐                                             │ │
+│  │   │   MySQL (Bitnami Helm v9.14) │                                             │ │
+│  │   │   Release: my-release        │                                             │ │
+│  │   └──────────────────────────────┘                                             │ │
+│  │                                                                                │ │
+│  └────────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
