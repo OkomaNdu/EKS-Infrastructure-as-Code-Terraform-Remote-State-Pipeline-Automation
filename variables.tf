@@ -3,7 +3,7 @@ variable env_prefix {
 }
 
 variable k8s_version {
-  default = "1.35"
+  default = "1.31"
 }
 
 variable cluster_name {
